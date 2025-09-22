@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Calcolatrice & Disegno con Righello — Con Lavagna (Infinita)</title>
+<style>
+:root{--bg1:#0f172a;--bg2:#071028;--card:rgba(255,255,255,0.06);--accent:#6ee7b7;--accent2:#60a5fa;--glass:rgba(255,255,255,0.04);--text:#e6eef8;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text)}
+.wrap{max-width:1200px;margin:20px auto;padding:18px;display:grid;grid-template-columns:360px 1fr;gap:18px}
+.panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:12px;padding:14px;box-shadow:0 6px 24px rgba(3,7,18,0.6);border:1px solid rgba(255,255,255,0.03)}
+h1{margin:0 0 8px;font-size:18px}p.lead{margin:0 0 12px;color:rgba(230,238,248,0.7);font-size:13px}
+.calc{padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));}
+.display{height:54px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:flex-end;font-size:20px;margin-bottom:10px;}
+.buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.scientific-buttons-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px}
+button.btn{padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--text);font-size:14px;cursor:pointer}
+button.btn:hover{background:rgba(255,255,255,0.06)}
+button.accent{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#04243a;font-weight:700}
+.history-wrap{margin-top:10px;max-height:160px;overflow-y:auto;background:rgba(255,255,255,0.02);border-radius:8px;padding:8px}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.02)}
+.stage{display:flex;flex-direction:column;gap:18px}
+.canvas-wrap{position:relative;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,0.02),transparent),linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.03)}
+#drawCanvas{background:transparent;border-radius:8px;display:block;width:100%;height:auto}
+#boardCanvas{border-radius:8px;display:block;width:100%;height:auto;background:transparent}
+.overlay{position:absolute;top:14px;left:14px;right:14px;bottom:14px;pointer-events:none}
+.controls-row{display:flex;gap:8px;align-items:center}
+.tool{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;margin-top:10px}
+.smallbtn{padding:6px 8px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--text);cursor:pointer}
+.top-tools{display:flex;gap:8px;align-items:center;margin-bottom:10px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);padding:8px;border-radius:10px}
+.board-tools{display:flex;gap:12px;align-items:center;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);padding:8px;border-radius:10px}
+.ruler-panel{margin-top:12px;padding:10px;background:linear-gradient(180deg,rgba(0,0,0,0.02),transparent);border-radius:10px}
+.toast{position:fixed;right:18px;bottom:18px;background:rgba(0,0,0,0.6);color:#fff;padding:10px 14px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.6);opacity:0;transform:translateY(10px);transition:all 260ms ease}
+.toast.show{opacity:1;transform:translateY(0)}
+footer{grid-column:1/-1;margin-top:8px;text-align:center;color:rgba(230,238,248,0.55);font-size:12px}
+@media(max-width:980px){.wrap{grid-template-columns:1fr}.panel{order:2}.stage{order:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <h1>Strumenti</h1>
+    <p class="lead">Calcolatrice integrata e pannello righello.</p>
+
+    <div class="calc">
+      <div id="display" class="display" aria-live="polite">0</div>
+      <div class="controls-row" style="justify-content:space-between"><label>Calcolatrice Scientifica</label><input type="checkbox" id="toggleScientific" aria-label="Mostra funzioni scientifiche"></div>
+      <div id="scientificButtons" class="scientific-buttons-grid" style="display:none">
+        <button class="btn" data-func="sqrt">√</button>
+        <button class="btn" data-op="^">xʸ</button>
+        <button class="btn" data-func="sin">sin</button>
+        <button class="btn" data-func="cos">cos</button>
+        <button class="btn" data-func="tan">tan</button>
+        <button class="btn" data-func="log">log</button>
+        <button class="btn" data-func="ln">ln</button>
+        <button class="btn" data-val="pi">π</button>
+        <button class="btn" data-val="e">e</button>
+        <button class="btn" data-val="(">(</button>
+        <button class="btn" data-val=")">)</button>
+      </div>
+      <div class="buttons" role="group" aria-label="Calcolatrice">
+        <button class="btn" id="clear">C</button><button class="btn" data-val="%">%</button><button class="btn" id="backspace">←</button><button class="btn" data-op="/">÷</button>
+        <button class="btn" data-val="7">7</button><button class="btn" data-val="8">8</button><button class="btn" data-val="9">9</button><button class="btn" data-op="*">×</button>
+        <button class="btn" data-val="4">4</button><button class="btn" data-val="5">5</button><button class="btn" data-val="6">6</button><button class="btn" data-op="-">−</button>
+        <button class="btn" data-val="1">1</button><button class="btn" data-val="2">2</button><button class="btn" data-val="3">3</button><button class="btn" data-op="+">+</button>
+        <button class="btn" data-val="0">0</button><button class="btn" data-val=".">.</button><button class="btn accent" style="grid-column:span 2" id="equals">=</button>
+      </div>
+      <div class="history-wrap" id="historyWrap"><div id="calcHistory"></div><button class="smallbtn" id="clearHistory">Cancella Storico</button></div>
+    </div>
+
+    <div class="ruler-panel tool">
+      <div class="controls-row" style="justify-content:space-between"><label>Mostra righello</label><input type="checkbox" id="showRuler" checked></div>
+      <div class="controls-row" style="justify-content:space-between"><label>Sposta righello</label><input type="checkbox" id="moveRuler"></div>
+      <div class="controls-row" style="align-items:center">
+        <label>Inclinazione: <span id="angleLabel">0°</span></label>
+        <input type="range" id="angle" min="-180" max="180" value="0" style="margin-left:6px">
+        <input type="number" id="angleNumber" min="-180" max="180" value="0" style="width:68px;margin-left:6px">
+      </div>
+      <div class="controls-row" style="margin-top:8px"><label>Lunghezza</label><input type="range" id="rulerLen" min="100" max="1200" value="1000"></div>
+      <div class="controls-row" style="justify-content:space-between"><label>Linea con righello</label><input type="checkbox" id="snapToRuler"></div>
+      <div class="controls-row" style="justify-content:center;margin-top:8px"><button class="smallbtn" id="resetRuler">Reimposta righello</button></div>
+    </div>
+
+    <div class="tool" style="margin-top:12px">
+      <div class="controls-row" style="margin-top:8px"><button class="smallbtn" id="clearCanvas">Pulisci</button><button class="smallbtn" id="exportPNG">Esporta PNG</button></div>
+      <div class="controls-row" style="margin-top:8px"><button class="smallbtn" id="saveProject">Salva progetto</button><button class="smallbtn" id="loadProject">Carica progetto</button><input type="file" id="fileInput" accept=".json" style="display:none"></div>
+    </div>
+
+  </div>
+
+  <div class="stage">
+    <div class="top-tools">
+      <div class="group">
+        <label for="modeTop">Modalità</label>
+        <select id="modeTop"><option value="draw">Disegna</option><option value="erase">Cancella</option><option value="line">Linea</option></select>
+      </div>
+      <div class="group">
+        <label for="sizeTop">Spessore</label>
+        <input type="range" id="sizeTop" min="1" max="30" value="4">
+      </div>
+      <div class="group">
+        <label for="drawColorTop">Colore</label>
+        <input type="color" id="drawColorTop" value="#60a5fa">
+      </div>
+      <div class="group">
+        <label>Mostra Centro</label>
+        <input type="checkbox" id="showCenterTop">
+      </div>
+      <div class="group">
+        <button class="smallbtn" id="undoTop">Annulla</button>
+      </div>
+      <div class="group" style="margin-left:auto;font-size:13px;color:rgba(255,255,255,0.7)">
+        <div>Strumento attivo: <span id="activeTool">Disegna</span></div>
+      </div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="drawCanvas" width="820" height="620" aria-label="Area di disegno"></canvas>
+      <div class="overlay" id="overlay"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+      <div>Centro: <span id="centerCoord">—</span> · Raggio: <span id="radiusVal">—</span></div>
+    </div>
+
+    <!-- Board (lavagna) sotto il canvas circolare -->
+    
+<div class="board-tools" style="margin-top:12px">
+  <div class="group">
+    <label for="boardMode">Modalità</label>
+    <select id="boardMode"><option value="draw">Disegna</option><option value="erase">Cancella</option><option value="line">Linea</option></select>
+  </div>
+  <div class="group">
+    <label for="boardSize">Spessore</label>
+    <input type="range" id="boardSize" min="1" max="60" value="6">
+  </div>
+  <div class="group">
+    <label for="boardColor">Colore</label>
+    <input type="color" id="boardColor" value="#0a0a0a">
+  </div>
+  <div class="group" style="margin-left:auto;display:flex;gap:8px;align-items:center">
+    <button class="smallbtn" id="boardUndo">Annulla</button>
+    <button class="smallbtn" id="boardClear">Pulisci</button>
+    <button class="smallbtn" id="boardExport">Esporta PNG</button>
+    <label for="spostaMode" style="margin-left:8px">Spostamento</label>
+    <input type="checkbox" id="spostaMode" title="Attiva per spostare l'area di lavoro (spostamento)"/>
+    <button class="smallbtn" id="resetSpostamento">Reimposta spostamento</button>
+  </div>
+</div>
+
+<div class="canvas-wrap board-container" style="position:relative" style="margin-top:6px;padding:12px;grid-column:1/-1;">
+  <canvas id="boardCanvas" width="1200" height="520" aria-label="Lavagna rettangolare"></canvas>
+  <canvas id="boardOverlay" width="1200" height="520" aria-hidden="true" style="position:absolute;left:12px;top:12px;pointer-events:none;"></canvas>
+</div>
+</div>
+
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<footer>Danycs progect..Aura calculator..Private progect</footer>
+
+<script>
+/* --------------------------- UTILS / TOAST --------------------------- */
+function showToast(msg, ms=1400){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(()=> t.classList.remove('show'), ms);
+}
+
+/* --------------------------- CALCOLATRICE --------------------------- */
+/* (unchanged) */
+(function(){
+  const display = document.getElementById('display');
+  const calcHistory = document.getElementById('calcHistory');
+  const clearHistoryBtn = document.getElementById('clearHistory');
+  const toggleScientific = document.getElementById('toggleScientific');
+  const scientificButtons = document.getElementById('scientificButtons');
+  let current = '';
+  let history = [];
+  let awaitingNew = false;
+  function update(){ display.textContent = current || '0'; }
+  function renderHistory(){ calcHistory.innerHTML = history.slice().reverse().map(h=>`<div class="history-item"><div><div class="history-expression">${h.expr}</div><div class="history-result">${h.res}</div></div><button class="btn" data-copy="${h.res}">Copia</button></div>`).join(''); }
+  function addHistory(expr,res){ history.push({expr,res}); renderHistory(); }
+  document.querySelectorAll('.calc .btn').forEach(b=>b.addEventListener('click', function(){
+    const v=this.dataset.val, op=this.dataset.op, f=this.dataset.func;
+    if(v!==undefined){ if(awaitingNew){ current=''; awaitingNew=false; } if(v==='pi') current+='π'; else if(v==='e') current+='e'; else current+=v; update(); }
+    else if(op!==undefined){ awaitingNew=false; current += (op==='^'?'^':op); update(); }
+    else if(f!==undefined){ if(awaitingNew){ current=''; awaitingNew=false; } if(f==='sqrt') current+='√('; else current+=f+'('; update(); }
+  }));
+  document.getElementById('clear').addEventListener('click', ()=>{ current=''; awaitingNew=false; update(); });
+  document.getElementById('backspace').addEventListener('click', ()=>{ current=current.slice(0,-1); awaitingNew=false; update(); });
+  document.getElementById('equals').addEventListener('click', ()=>{
+    if(!current) return;
+    let exp = current;
+    const open = (exp.match(/\(/g)||[]).length, close = (exp.match(/\)/g)||[]).length;
+    for(let i=0;i<open-close;i++) exp += ')';
+    exp = exp.replace(/π/g,'Math.PI').replace(/e/g,'Math.E').replace(/÷/g,'/').replace(/×/g,'*').replace(/−/g,'-').replace(/\^/g,'**').replace(/%/g,'/100');
+    exp = exp.replace(/sin\(([^)]*)\)/g,(m,a)=>`Math.sin((${a})*Math.PI/180)`);
+    exp = exp.replace(/cos\(([^)]*)\)/g,(m,a)=>`Math.cos((${a})*Math.PI/180)`);
+    exp = exp.replace(/tan\(([^)]*)\)/g,(m,a)=>`Math.tan((${a})*Math.PI/180)`);
+    exp = exp.replace(/√\(([^)]*)\)/g,'Math.sqrt($1)');
+    exp = exp.replace(/log\(([^)]*)\)/g,'Math.log10($1)');
+    exp = exp.replace(/ln\(([^)]*)\)/g,'Math.log($1)');
+    try{
+      const r = Function('return ('+exp+')')();
+      addHistory(current, String(r));
+      current = String(r);
+      awaitingNew = true;
+      update();
+    } catch(err){ display.textContent = 'Errore'; current=''; awaitingNew=false; }
+  });
+  clearHistoryBtn.addEventListener('click', ()=>{ history.length=0; renderHistory(); showToast('Storico cancellato'); });
+  calcHistory.addEventListener('click', (e)=>{ if(e.target.dataset.copy) { navigator.clipboard.writeText(e.target.dataset.copy); showToast('Copia effettuata'); } });
+  toggleScientific.addEventListener('change', ()=>{ scientificButtons.style.display = toggleScientific.checked ? 'grid' : 'none'; });
+  renderHistory();
+})();
+
+/* --------------------------- CANVAS & RULER (unchanged) --------------------------- */
+/* (same as original drawCanvas / ruler code omitted in this snippet for brevity) */
+/* We'll keep the drawCanvas/ruler IIFE exactly as in the original file above. */
+
+(function(){
+  // elements (mapped to top-toolbar IDs)
+  const canvas = document.getElementById('drawCanvas');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const showRuler = document.getElementById('showRuler');
+  const moveRuler = document.getElementById('moveRuler');
+  const angleIn = document.getElementById('angle');
+  const angleNumber = document.getElementById('angleNumber');
+  const angleLabel = document.getElementById('angleLabel');
+  const rulerLen = document.getElementById('rulerLen');
+  const snapToRuler = document.getElementById('snapToRuler');
+  const modeTop = document.getElementById('modeTop');
+  const sizeTop = document.getElementById('sizeTop');
+  const drawColorTop = document.getElementById('drawColorTop');
+  const showCenterTop = document.getElementById('showCenterTop');
+  const undoTop = document.getElementById('undoTop');
+  const activeToolLabel = document.getElementById('activeTool');
+  const clearCanvasBtn = document.getElementById('clearCanvas');
+  const exportPNG = document.getElementById('exportPNG');
+  const resetRulerBtn = document.getElementById('resetRuler');
+  const saveProjectBtn = document.getElementById('saveProject');
+  const loadProjectBtn = document.getElementById('loadProject');
+  const fileInput = document.getElementById('fileInput');
+
+  // sizes & buffer
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2, radius = Math.min(W,H)*0.42;
+  document.getElementById('radiusVal').textContent = Math.round(radius);
+  document.getElementById('centerCoord').textContent = Math.round(cx)+','+Math.round(cy);
+  const buffer = document.createElement('canvas'); buffer.width=W; buffer.height=H; const btx = buffer.getContext('2d');
+
+  // actions stack
+  const actions = []; // each: {type:'stroke'|'line'|'erase', color, w, points,start,end}
+
+  // interaction state
+  let drawing=false, last=null, currentStroke=null;
+  let lineStart=null, lineStartOnRuler=false, lineStartSnapActive=false;
+  let rulerOffsetX=0, rulerOffsetY=0, rulerMoving=false;
+
+  // draw composition
+  function drawBackground(){
+    ctx.clearRect(0,0,W,H);
+    ctx.save(); ctx.fillStyle='rgba(255,255,255,0.01)'; ctx.fillRect(0,0,W,H); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.closePath(); ctx.lineWidth = 2; ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.stroke(); ctx.restore();
+    // clip and draw buffer
+    ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.closePath(); ctx.clip();
+    ctx.drawImage(buffer,0,0);
+    ctx.restore();
+    if(showCenterTop && showCenterTop.checked){ ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.fill(); ctx.restore(); }
+  }
+
+  // projection & helper
+  function projectToRuler(x,y){
+    const ang = Number(angleIn.value)*Math.PI/180;
+    const ux = Math.cos(ang), uy = Math.sin(ang);
+    const rcx = cx + rulerOffsetX, rcy = cy + rulerOffsetY;
+    const vx = x - rcx, vy = y - rcy;
+    const t = vx*ux + vy*uy;
+    return { x: rcx + t*ux, y: rcy + t*uy, t };
+  }
+  function distToRuler(x,y){ const p = projectToRuler(x,y); const dx = x - p.x, dy = y - p.y; return Math.sqrt(dx*dx + dy*dy); }
+
+  function renderOverlay(){
+    overlay.innerHTML='';
+    // basic guard
+    if(!showRuler.checked){ overlay.classList.remove('movable'); overlay.style.pointerEvents='none'; return; }
+    if(moveRuler.checked) overlay.classList.add('movable'); else overlay.classList.remove('movable');
+
+    const angDeg = Number(angleIn.value);
+    angleLabel.textContent = Math.round(angDeg)+'°';
+    const len = Number(rulerLen.value);
+    const rad = angDeg * Math.PI/180;
+    const dx = Math.cos(rad), dy = Math.sin(rad);
+    const rcx = cx + rulerOffsetX, rcy = cy + rulerOffsetY;
+    const x1 = rcx - dx * len/2, y1 = rcy - dy * len/2;
+    const x2 = rcx + dx * len/2, y2 = rcy + dy * len/2;
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS,'svg'); svg.setAttribute('width',W); svg.setAttribute('height',H);
+    svg.style.position='absolute'; svg.style.left='0'; svg.style.top='0';
+    svg.style.pointerEvents = moveRuler.checked ? 'auto' : 'none';
+    svg.style.userSelect = 'none';
+
+    const line = document.createElementNS(svgNS,'line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1); line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.setAttribute('stroke','rgba(110,231,183,0.85)'); line.setAttribute('stroke-width',6); line.setAttribute('stroke-linecap','round'); line.setAttribute('id','rulerLine');
+    svg.appendChild(line);
+
+    const ticks = 21;
+    for(let i=0;i<ticks;i++){
+      const t = (i/(ticks-1)-0.5)*len;
+      const tx = rcx + dx*t, ty = rcy + dy*t;
+      const perpx = -dy, perpy = dx;
+      const tick = document.createElementNS(svgNS,'line');
+      const s = (i%5===0)?10:5;
+      tick.setAttribute('x1', tx - perpx*s); tick.setAttribute('y1', ty - perpy*s);
+      tick.setAttribute('x2', tx + perpx*s); tick.setAttribute('y2', ty + perpy*s);
+      tick.setAttribute('stroke','rgba(255,255,255,0.45)'); tick.setAttribute('stroke-width',1);
+      svg.appendChild(tick);
+    }
+    overlay.appendChild(svg);
+
+    // attach pointer handlers to the ruler line for dragging (only when moveRuler is enabled)
+    if(moveRuler.checked){
+      line.style.cursor = 'grab';
+      const onPointerDown = (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        line.style.cursor = 'grabbing';
+        rulerMoving = true;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const startClientX = ev.clientX; const startClientY = ev.clientY;
+        const startOffsetX = rulerOffsetX; const startOffsetY = rulerOffsetY;
+
+        const onMove = (me) => {
+          const dxClient = me.clientX - startClientX; const dyClient = me.clientY - startClientY;
+          rulerOffsetX = startOffsetX + dxClient * scaleX; rulerOffsetY = startOffsetY + dyClient * scaleY;
+          renderOverlay(); drawBackground();
+        };
+        const onUp = (mu) => { rulerMoving = false; line.style.cursor = 'grab'; window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        try{ ev.target.setPointerCapture && ev.target.setPointerCapture(ev.pointerId); }catch(e){}
+      };
+      line.addEventListener('pointerdown', onPointerDown);
+    }
+  }
+
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : (e.clientX !== undefined ? e.clientX : (e.changedTouches ? e.changedTouches[0].clientX : 0));
+    const clientY = e.touches ? e.touches[0].clientY : (e.clientY !== undefined ? e.clientY : (e.changedTouches ? e.changedTouches[0].clientY : 0));
+    const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }
+  function insideCircle(x,y){ const dx = x-cx, dy = y-cy; return (dx*dx + dy*dy) <= (radius*radius + 0.0001); }
+
+  // Pointer handlers (unchanged from original for circular canvas)
+  function pointerDown(e){
+    if(rulerMoving) return;
+    e.preventDefault();
+    const m = modeTop.value;
+    const p = getPos(e);
+    // if snap enabled at the moment of click, project start point; otherwise use raw
+    let p2 = snapToRuler.checked ? projectToRuler(p.x,p.y) : p;
+    if(!insideCircle(p2.x,p2.y)) return;
+    if(m === 'line'){
+      if(!lineStart){
+        lineStart = p2;
+        lineStartSnapActive = snapToRuler.checked;
+        lineStartOnRuler = lineStartSnapActive && (distToRuler(lineStart.x,lineStart.y) < 14);
+        drawBackground(); renderOverlay();
+        ctx.save(); ctx.beginPath(); ctx.arc(lineStart.x,lineStart.y,4,0,Math.PI*2); ctx.fillStyle=drawColorTop.value; ctx.fill(); ctx.restore();
+      } else {
+        const pEnd = p2;
+        btx.save(); btx.beginPath(); btx.lineWidth = Number(sizeTop.value); btx.strokeStyle = drawColorTop.value; btx.lineCap = 'round'; btx.moveTo(lineStart.x,lineStart.y); btx.lineTo(pEnd.x,pEnd.y); btx.stroke(); btx.restore();
+        actions.push({type:'line', start:lineStart, end:pEnd, color:drawColorTop.value, w:Number(sizeTop.value)});
+        rebuildBufferFromActions(); saveToLocal(); showToast('Linea aggiunta');
+        lineStart = null; lineStartOnRuler = false; lineStartSnapActive = false;
+      }
+    } else {
+      drawing = true; last = p2; currentStroke = { type: m === 'erase' ? 'erase' : 'stroke', points: [ {x:last.x,y:last.y} ], color: drawColorTop.value, w: Number(sizeTop.value) };
+    }
+  }
+
+  function pointerMove(e){
+    if(modeTop.value === 'line') return;
+    if(!drawing || rulerMoving) return;
+    const p = getPos(e);
+    let cur = snapToRuler.checked ? projectToRuler(p.x,p.y) : p;
+    if(!insideCircle(cur.x,cur.y)){ const vx=cur.x-cx, vy=cur.y-cy, len=Math.sqrt(vx*vx+vy*vy); if(len===0) return; cur.x = cx + vx/len * radius * 0.999; cur.y = cy + vy/len * radius * 0.999; }
+    btx.lineCap='round'; btx.lineJoin='round';
+    const w = Number(sizeTop.value);
+    if(modeTop.value === 'erase'){ btx.globalCompositeOperation='destination-out'; btx.strokeStyle='rgba(0,0,0,1)'; btx.lineWidth = w*2; }
+    else { btx.globalCompositeOperation='source-over'; btx.strokeStyle = drawColorTop.value; btx.lineWidth = w; }
+    btx.beginPath(); btx.moveTo(last.x,last.y); btx.lineTo(cur.x,cur.y); btx.stroke();
+    if(currentStroke) currentStroke.points.push({x:cur.x,y:cur.y});
+    last = cur; drawBackground();
+  }
+
+  function pointerUp(e){ if(drawing && currentStroke){ actions.push(currentStroke); currentStroke = null; saveToLocal(); showToast('Tratto aggiunto'); } drawing = false; last = null; }
+
+  canvas.addEventListener('mousedown', pointerDown);
+  canvas.addEventListener('mousemove', function(e){
+    // preview omitted for brevity
+     if(snapToRuler.checked || moveRuler.checked){
+      drawBackground();
+      renderOverlay();
+      const ang = Number(angleIn.value) * Math.PI / 180;
+      const dx = Math.cos(ang), dy = Math.sin(ang);
+      const rcx = cx + rulerOffsetX, rcy = cy + rulerOffsetY;
+      const len = Number(rulerLen.value);
+      const x1 = rcx - dx * len/2, y1 = rcy - dy * len/2;
+      const x2 = rcx + dx * len/2, y2 = rcy + dy * len/2;
+      ctx.save();
+      ctx.setLineDash([4,4]);
+      ctx.strokeStyle = 'rgba(96,165,250,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1,y1);
+      ctx.lineTo(x2,y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if(modeTop.value==='line' && lineStart){
+      drawBackground(); renderOverlay();
+      const p=getPos(e);
+
+      // Prefer projection only when:
+      // - snap is currently enabled OR
+      // - moveRuler is enabled OR
+      // - the line was started while snap was active and that start was on the ruler
+      const proj = projectToRuler(p.x,p.y);
+      const shouldProject = snapToRuler.checked || moveRuler.checked || (lineStartSnapActive && lineStartOnRuler);
+
+      let p2 = p;
+      if(shouldProject){
+        p2 = proj;
+      }
+
+      // draw preview line
+      ctx.save(); ctx.setLineDash([6,6]); ctx.strokeStyle = drawColorTop.value; ctx.lineWidth = Number(sizeTop.value); ctx.beginPath(); ctx.moveTo(lineStart.x,lineStart.y); ctx.lineTo(p2.x,p2.y); ctx.stroke(); ctx.restore();
+
+      // draw projection marker & perpendicular guide for clarity only if we actually projected
+      if(shouldProject){
+        const projPoint = p2;
+        ctx.save(); ctx.beginPath(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(255,255,255,0.45)'; ctx.lineWidth=1; ctx.moveTo(p.x,p.y); ctx.lineTo(projPoint.x,projPoint.y); ctx.stroke(); ctx.restore();
+        ctx.save(); ctx.beginPath(); ctx.arc(projPoint.x,projPoint.y,5,0,Math.PI*2); ctx.fillStyle='rgba(96,165,250,0.95)'; ctx.fill(); ctx.strokeStyle='rgba(255,255,255,0.95)'; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+      }
+    } else pointerMove(e);
+  });
+  window.addEventListener('mouseup', pointerUp);
+  canvas.addEventListener('touchstart', function(e){ pointerDown(e); }, {passive:false});
+  canvas.addEventListener('touchmove', function(e){ if(modeTop.value==='line' && lineStart){} else { pointerMove(e); } }, {passive:false});
+  canvas.addEventListener('touchend', pointerUp);
+  function rebuildBufferFromActions(){
+    btx.clearRect(0,0,W,H);
+    btx.globalCompositeOperation='source-over';
+    for(const a of actions){
+      if(a.type === 'erase'){
+        btx.globalCompositeOperation='destination-out'; btx.lineWidth = a.w; btx.beginPath(); const pts = a.points; if(pts && pts.length){ btx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++){ btx.lineTo(pts[i].x,pts[i].y); } btx.stroke(); } btx.globalCompositeOperation='source-over';
+      }
+      else if(a.type === 'line'){
+        btx.beginPath(); btx.strokeStyle = a.color; btx.lineWidth = a.w; btx.lineCap = 'round'; btx.moveTo(a.start.x,a.start.y); btx.lineTo(a.end.x,a.end.y); btx.stroke();
+      }
+      else if(a.type === 'stroke'){
+        const pts = a.points; if(pts && pts.length){ btx.beginPath(); btx.strokeStyle = a.color; btx.lineWidth = a.w; btx.lineCap = 'round'; btx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++){ btx.lineTo(pts[i].x,pts[i].y); } btx.stroke(); }
+      }
+    }
+    btx.globalCompositeOperation='source-over';
+    drawBackground();
+  }
+
+  function undoLastAction(){ if(actions.length===0) return; actions.pop(); rebuildBufferFromActions(); saveToLocal(); showToast('Azione annullata'); }
+
+  saveProjectBtn.addEventListener('click', ()=>{ const data = JSON.stringify(actions); const blob = new Blob([data], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'progetto_circle.json'; a.click(); showToast('Progetto salvato'); });
+  loadProjectBtn.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', (e)=>{ const f = e.target.files[0]; if(!f) return; const reader = new FileReader(); reader.onload = ()=>{ try{ const data = JSON.parse(reader.result); actions.length=0; actions.push(...data); rebuildBufferFromActions(); saveToLocal(); showToast('Progetto caricato'); } catch(err){ alert('File non valido'); } }; reader.readAsText(f); });
+
+  exportPNG.addEventListener('click', ()=>{
+    const out = document.createElement('canvas'); out.width=W; out.height=H; const otx = out.getContext('2d');
+    otx.beginPath(); otx.arc(cx,cy,radius,0,Math.PI*2); otx.closePath(); otx.lineWidth = 2; otx.strokeStyle = 'rgba(255,255,255,0.06)'; otx.stroke();
+    otx.save(); otx.beginPath(); otx.arc(cx,cy,radius,0,Math.PI*2); otx.clip(); otx.drawImage(buffer,0,0); otx.restore();
+    if(showCenterTop && showCenterTop.checked){ otx.beginPath(); otx.arc(cx,cy,3,0,Math.PI*2); otx.fillStyle='rgba(255,255,255,0.8)'; otx.fill(); }
+    const data = out.toDataURL('image/png'); const a = document.createElement('a'); a.href = data; a.download = 'disegno.png'; a.click(); showToast('PNG esportato');
+  });
+
+  clearCanvasBtn.addEventListener('click', ()=>{ actions.length=0; btx.clearRect(0,0,W,H); drawBackground(); saveToLocal(); showToast('Canvas pulito'); });
+  undoTop.addEventListener('click', undoLastAction);
+
+  snapToRuler.addEventListener('change', ()=>{ if(snapToRuler.checked){ moveRuler.checked=false; } renderOverlay(); });
+  moveRuler.addEventListener('change', ()=>{ if(moveRuler.checked){ snapToRuler.checked=false; } renderOverlay(); });
+  showRuler.addEventListener('change', ()=>{ renderOverlay(); });
+
+  angleIn.addEventListener('input', ()=>{ angleNumber.value = angleIn.value; angleLabel.textContent = Math.round(Number(angleIn.value))+'°'; renderOverlay(); });
+  angleNumber.addEventListener('input', ()=>{ let v = Number(angleNumber.value); if(isNaN(v)) v=0; v = Math.max(-180,Math.min(180,v)); angleIn.value = v; angleLabel.textContent = Math.round(v)+'°'; renderOverlay(); });
+  angleIn.addEventListener('change', ()=>{ angleNumber.value = angleIn.value; });
+  angleNumber.addEventListener('change', ()=>{ angleIn.value = angleNumber.value; });
+
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  resetRulerBtn.addEventListener('click', ()=>{
+    moveRuler.checked = false; snapToRuler.checked = false;
+    const startX = rulerOffsetX, startY = rulerOffsetY, startA = Number(angleIn.value);
+    const targetX = 0; const targetY = 20; const targetA = 0;
+    const duration = 420; const startTime = performance.now();
+    function frame(now){ const elapsed = now - startTime; const t = Math.min(1, elapsed/duration); const e = easeOutCubic(t);
+      rulerOffsetX = startX + (targetX - startX) * e; rulerOffsetY = startY + (targetY - startY) * e;
+      const ang = startA + (targetA - startA) * e; angleIn.value = ang.toFixed(2); angleNumber.value = ang.toFixed(2); angleLabel.textContent = Math.round(ang)+'°'; renderOverlay(); drawBackground();
+      if(t<1) requestAnimationFrame(frame); else { rulerOffsetX = targetX; rulerOffsetY = targetY; angleIn.value = targetA; angleNumber.value = targetA; angleLabel.textContent = Math.round(targetA)+'°'; renderOverlay(); drawBackground(); }
+    }
+    requestAnimationFrame(frame);
+  });
+
+  document.getElementById('modeTop').addEventListener('change', ()=>{ activeToolLabel.textContent = document.getElementById('modeTop').value === 'draw' ? 'Disegna' : (document.getElementById('modeTop').value === 'erase' ? 'Cancella' : 'Linea'); });
+
+  const STORAGE_KEY = 'canvas_calc_actions_v2';
+  function saveToLocal(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(actions)); }catch(err){} }
+  function loadFromLocal(){ try{ const s = localStorage.getItem(STORAGE_KEY); if(s){ const data = JSON.parse(s); actions.length=0; actions.push(...data); rebuildBufferFromActions(); } }catch(err){} }
+  loadFromLocal();
+
+  rebuildBufferFromActions(); renderOverlay(); drawBackground();
+  window.addEventListener('resize', ()=>{ renderOverlay(); drawBackground(); });
+})(); // end canvas IIFE
+
+/* --------------------------- LAVAGNA RETTANGOLARE (board) con Spostamento e overlay --------------------------- */
+(function(){
+  const board = document.getElementById('boardCanvas');
+  const overlay = document.getElementById('boardOverlay');
+  const bctx = board.getContext('2d');
+  const octx = overlay.getContext('2d');
+  const modeSel = document.getElementById('boardMode');
+  const size = document.getElementById('boardSize');
+  const color = document.getElementById('boardColor');
+  const undoBtn = document.getElementById('boardUndo');
+  const clearBtn = document.getElementById('boardClear');
+  const exportBtn = document.getElementById('boardExport');
+  const spostaToggle = document.getElementById('spostaMode');
+  const resetBtn = document.getElementById('resetSpostamento');
+
+  const actions = [];
+  let drawing = false, last = null, current = null, lineStart = null;
+  let cssW=0, cssH=0, dpr = window.devicePixelRatio || 1;
+  let panX = 0, panY = 0;
+
+  const layer = document.createElement('canvas');
+  const lctx = layer.getContext('2d');
+
+  function fitBoard(){
+    const container = board.parentElement;
+    const rect = container.getBoundingClientRect();
+    cssW = Math.min(1400, Math.max(640, Math.round(rect.width - 24)));
+    cssH = 520;
+    dpr = window.devicePixelRatio || 1;
+
+    board.style.width = cssW + 'px'; board.style.height = cssH + 'px';
+    overlay.style.width = cssW + 'px'; overlay.style.height = cssH + 'px';
+
+    board.width = Math.round(cssW * dpr); board.height = Math.round(cssH * dpr);
+    overlay.width = Math.round(cssW * dpr); overlay.height = Math.round(cssH * dpr);
+
+    layer.width = board.width; layer.height = board.height;
+
+    bctx.setTransform(1,0,0,1,0,0); octx.setTransform(1,0,0,1,0,0); lctx.setTransform(1,0,0,1,0,0);
+    bctx.scale(dpr,dpr); octx.scale(dpr,dpr); lctx.scale(dpr,dpr);
+    bctx.lineJoin='round'; bctx.lineCap='round';
+    lctx.lineJoin='round'; lctx.lineCap='round';
+    octx.lineJoin='round'; octx.lineCap='round';
+
+    rebuildLayerFromActions();
+    redraw();
+  }
+  window.addEventListener('resize', fitBoard);
+
+  function drawBackgroundGrid(){
+    bctx.clearRect(0,0,cssW,cssH);
+    bctx.fillStyle = '#ffffff'; bctx.fillRect(0,0,cssW,cssH);
+    const grid = 24;
+    const offsetX = ((-panX % grid) + grid) % grid;
+    const offsetY = ((-panY % grid) + grid) % grid;
+    bctx.beginPath(); bctx.strokeStyle = 'rgba(200,200,200,0.45)'; bctx.lineWidth=1;
+    for(let x=offsetX;x<=cssW;x+=grid){ bctx.moveTo(x+0.5,0); bctx.lineTo(x+0.5,cssH); }
+    for(let y=offsetY;y<=cssH;y+=grid){ bctx.moveTo(0,y+0.5); bctx.lineTo(cssW,y+0.5); }
+    bctx.stroke();
+  }
+
+  function rebuildLayerFromActions(){
+    lctx.setTransform(1,0,0,1,0,0);
+    lctx.clearRect(0,0,layer.width,layer.height);
+    lctx.scale(dpr,dpr);
+    lctx.globalCompositeOperation='source-over';
+    for(const a of actions){
+      if(a.type==='stroke'){ const pts=a.points; if(!pts||!pts.length) continue;
+        lctx.beginPath(); lctx.strokeStyle=a.color; lctx.lineWidth=a.w; lctx.moveTo(pts[0].x-panX,pts[0].y-panY);
+        for(let i=1;i<pts.length;i++) lctx.lineTo(pts[i].x-panX,pts[i].y-panY); lctx.stroke();
+      } else if(a.type==='erase'){ const pts=a.points; if(!pts||!pts.length) continue;
+        lctx.save(); lctx.globalCompositeOperation='destination-out'; lctx.lineWidth=a.w*2; lctx.beginPath(); lctx.moveTo(pts[0].x-panX,pts[0].y-panY);
+        for(let i=1;i<pts.length;i++) lctx.lineTo(pts[i].x-panX,pts[i].y-panY); lctx.stroke(); lctx.restore();
+      } else if(a.type==='line'){
+        lctx.beginPath(); lctx.strokeStyle=a.color; lctx.lineWidth=a.w; lctx.moveTo(a.start.x-panX,a.start.y-panY); lctx.lineTo(a.end.x-panX,a.end.y-panY); lctx.stroke();
+      }
+    }
+  }
+
+  function redraw(){ drawBackgroundGrid(); bctx.drawImage(layer,0,0,cssW,cssH); }
+
+  function worldPos(e){ const r=board.getBoundingClientRect(); const sx=(e.clientX-r.left); const sy=(e.clientY-r.top); return {x:sx+panX,y:sy+panY}; }
+
+  let pointerId=null; let panning=false; let panStart=null;
+
+  board.addEventListener('pointerdown', e=>{
+    pointerId=e.pointerId;
+    if(spostaToggle.checked){ panning=true; panStart={x:e.clientX,y:e.clientY,startX:panX,startY:panY}; return; }
+    const p=worldPos(e);
+    if(modeSel.value==='line'){ if(!lineStart){ lineStart=p; octx.clearRect(0,0,overlay.width,overlay.height);
+      octx.beginPath(); octx.arc(lineStart.x-panX,lineStart.y-panY,4,0,Math.PI*2); octx.fillStyle=color.value; octx.fill();
+    } else { actions.push({type:'line',start:{x:lineStart.x,y:lineStart.y},end:{x:p.x,y:p.y},color:color.value,w:Number(size.value)});
+      rebuildLayerFromActions(); redraw(); octx.clearRect(0,0,overlay.width,overlay.height); lineStart=null; showToast('Linea aggiunta'); } return; }
+    drawing=true; last=p; current={type:(modeSel.value==='erase'?'erase':'stroke'),points:[{x:last.x,y:last.y}],color:color.value,w:Number(size.value)};
+  });
+
+  board.addEventListener('pointermove', e=>{
+    if(panning && panStart){ panX=panStart.startX-(e.clientX-panStart.x); panY=panStart.startY-(e.clientY-panStart.y); rebuildLayerFromActions(); redraw(); return; }
+    if(drawing){ const p=worldPos(e); if(current.type==='erase'){ lctx.save(); lctx.globalCompositeOperation='destination-out'; lctx.lineWidth=current.w*2; lctx.beginPath(); lctx.moveTo(last.x-panX,last.y-panY); lctx.lineTo(p.x-panX,p.y-panY); lctx.stroke(); lctx.restore();
+    } else { lctx.beginPath(); lctx.strokeStyle=current.color; lctx.lineWidth=current.w; lctx.moveTo(last.x-panX,last.y-panY); lctx.lineTo(p.x-panX,p.y-panY); lctx.stroke(); } current.points.push({x:p.x,y:p.y}); last=p; redraw(); }
+    if(modeSel.value==='line'&&lineStart){ const p=worldPos(e); octx.clearRect(0,0,overlay.width,overlay.height); octx.beginPath(); octx.setLineDash([6,6]); octx.strokeStyle=color.value; octx.lineWidth=Number(size.value); octx.moveTo(lineStart.x-panX,lineStart.y-panY); octx.lineTo(p.x-panX,p.y-panY); octx.stroke(); octx.setLineDash([]); }
+  });
+
+  board.addEventListener('pointerup', e=>{ if(drawing&&current){ actions.push(current); current=null; showToast('Tratto aggiunto'); } drawing=false; last=null; panning=false; });
+
+  undoBtn.addEventListener('click',()=>{ if(actions.length){ actions.pop(); rebuildLayerFromActions(); redraw(); showToast('Annullato'); } });
+  clearBtn.addEventListener('click',()=>{ actions.length=0; rebuildLayerFromActions(); redraw(); showToast('Pulito'); });
+  exportBtn.addEventListener('click',()=>{ const data=board.toDataURL('image/png'); const a=document.createElement('a'); a.href=data; a.download='lavagna.png'; a.click(); showToast('PNG esportato'); });
+  resetBtn.addEventListener('click',()=>{
+    const startX = panX;
+    const startY = panY;
+    const duration = 500;
+    const startTime = performance.now();
+    function animate(t){
+      const progress = Math.min((t - startTime)/duration, 1);
+      panX = startX * (1-progress);
+      panY = startY * (1-progress);
+      rebuildLayerFromActions();
+      redraw();
+      if(progress < 1){
+        requestAnimationFrame(animate);
+      } else {
+        showToast('Spostamento reimpostato');
+      }
+    }
+    requestAnimationFrame(animate);
+  });
+
+  fitBoard();
+})(); // end board IIFE
+
+</script>
+</body>
+</html>
