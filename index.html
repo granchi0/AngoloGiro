@@ -465,7 +465,7 @@ function showToast(msg, ms=1400){
     btx.globalCompositeOperation='source-over';
     for(const a of actions){
       if(a.type === 'erase'){
-        btx.globalCompositeOperation='destination-out'; btx.lineWidth = a.w; btx.beginPath(); const pts = a.points; if(pts && pts.length){ btx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++){ btx.lineTo(pts[i].x,pts[i].y); } btx.stroke(); } btx.globalCompositeOperation='source-over';
+        btx.globalCompositeOperation='destination-out'; btx.lineWidth = a.w * 2;; btx.beginPath(); const pts = a.points; if(pts && pts.length){ btx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++){ btx.lineTo(pts[i].x,pts[i].y); } btx.stroke(); } btx.globalCompositeOperation='source-over';
       }
       else if(a.type === 'line'){
         btx.beginPath(); btx.strokeStyle = a.color; btx.lineWidth = a.w; btx.lineCap = 'round'; btx.moveTo(a.start.x,a.start.y); btx.lineTo(a.end.x,a.end.y); btx.stroke();
