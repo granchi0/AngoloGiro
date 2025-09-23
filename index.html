@@ -404,7 +404,7 @@ function showToast(msg, ms=1400){
     last = cur; drawBackground();
   }
 
-  function pointerUp(e){ if(drawing && currentStroke){ actions.push(currentStroke); currentStroke = null; saveToLocal(); showToast('Tratto aggiunto'); } drawing = false; last = null; }
+  function pointerUp(e){ if(drawing && currentStroke){ actions.push(currentStroke); currentStroke = null;rebuildBufferFromActions();saveToLocal();showToast('Tratto aggiunto'); } drawing = false; last = null; }
 
   canvas.addEventListener('mousedown', pointerDown);
   canvas.addEventListener('mousemove', function(e){
