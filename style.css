@@ -1,0 +1,115 @@
+
+/* Checkbox personalizzate */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s ease;
+}
+input[type="checkbox"]:hover {
+  border-color: var(--accent);
+}
+input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: transparent;
+}
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0px;
+  width: 5px;
+  height: 10px;
+  border: solid #04243a;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Select menu personalizzati */
+select {
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  padding: 6px 28px 6px 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg fill='white' height='12' viewBox='0 0 24 24' width='12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+select:hover {
+  border-color: var(--accent);
+}
+select:focus {
+  outline: none;
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 2px rgba(96,165,250,0.3);
+}
+/* ----- MENU A TENDINA (Disegna, Cancella, Linea) ----- */
+select {
+  background: linear-gradient(180deg, rgba(15,23,42,0.9), rgba(7,16,40,0.9));
+  color: var(--text);
+  padding: 8px 32px 8px 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg fill='%2360a5fa' height='14' viewBox='0 0 24 24' width='14' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  transition: all 0.25s ease;
+}
+
+select:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(110,231,183,0.25);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px rgba(96,165,250,0.35);
+}
+
+/* ----- SELETTORE COLORE ----- */
+input[type="color"] {
+  -webkit-appearance: none;
+  border: none;
+  width: 42px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.3);
+}
+
+input[type="color"]:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 8px rgba(96,165,250,0.4);
+}
+
+input[type="color"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(110,231,183,0.4);
+}
